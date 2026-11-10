@@ -74,5 +74,7 @@ jobs:
             FRAPPE_BRANCH=${{ inputs.frappe_branch || 'production' }}
             ERPNEXT_REPO=https://github.com/aais-apps/erpnext.git
             ERPNEXT_BRANCH=${{ inputs.erpnext_branch || 'production' }}
+            EDUCATION_REPO=https://github.com/aais-apps/education.git
+            EDUCATION_BRANCH=production
           cache-from: type=gha
           cache-to: type=gha,mode=max
