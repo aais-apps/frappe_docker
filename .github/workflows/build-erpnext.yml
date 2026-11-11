@@ -76,5 +76,7 @@ jobs:
             ERPNEXT_BRANCH=${{ inputs.erpnext_branch || 'production' }}
             EDUCATION_REPO=https://github.com/aais-apps/education.git
             EDUCATION_BRANCH=production
+            BUILDER_REPO=https://github.com/aais-apps/builder.git
+            BUILDER_BRANCH=production
           cache-from: type=gha
           cache-to: type=gha,mode=max
