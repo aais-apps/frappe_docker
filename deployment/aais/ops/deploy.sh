@@ -12,9 +12,8 @@ stamp=$(date -u +%Y%m%dT%H%M%SZ)
 snapshot="/home/nirog/aais-backups/release-$stamp"
 mkdir -p "$snapshot/site"
 cp .env "$snapshot/deployment.env"
-cp compose.yaml "$snapshot/compose.yaml"
-old_image=$(docker inspect aais-erp-backend-1 --format '{{.Image}}')
-docker tag "$old_image" "local/aais-rollback:$stamp"
+cp "${AAIS_PREVIOUS_COMPOSE:-compose.yaml}" "$snapshot/compose.yaml"
+docker commit aais-erp-backend-1 "local/aais-rollback:$stamp" >/dev/null
 frozen=false
 migrated=false
 rollback() {
@@ -23,6 +22,7 @@ rollback() {
   if $frozen; then
     docker compose stop -t 120 backend frontend scheduler queue-short queue-long websocket || true
     cp "$snapshot/deployment.env" .env
+    cp "$snapshot/compose.yaml" compose.yaml
     # Roll back to the actual previous local image, including any preserved hotfixes.
     python3 ops/set-image.py "local/aais-rollback:$stamp"
     if $migrated; then

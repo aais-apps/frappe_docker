@@ -1,0 +1,13 @@
+[Unit]
+Description=Restrict direct access to school ERP and Docker administration ports
+After=docker.service
+Requires=docker.service
+PartOf=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/home/nirog/aais-erp/ops/network.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=docker.service

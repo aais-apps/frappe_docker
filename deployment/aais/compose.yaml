@@ -9,6 +9,7 @@ x-logging: &logging
 x-app: &app
   image: ${ERPNEXT_IMAGE:?Set an immutable tested image reference}
   restart: unless-stopped
+  init: true
   networks: [frappe_network]
   volumes:
     - sites:/home/frappe/frappe-bench/sites
@@ -23,7 +24,7 @@ x-app: &app
 services:
   backend:
     <<: *app
-    mem_limit: 500m
+    mem_limit: 600m
     healthcheck:
       test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen(urllib.request.Request('http://127.0.0.1:8000/api/method/ping', headers={'Host':'${SITE_NAME:-erp.aais.local}'}), timeout=5)"]
       interval: 30s
@@ -48,6 +49,8 @@ services:
         bench set-config -g redis_queue redis://redis-queue:6379
         bench set-config -g redis_socketio redis://redis-queue:6379
         bench set-config -gp socketio_port 9000
+        bench set-config -g chromium_path /usr/bin/chromium-headless-shell
+        bench set-config -gp chromium_start_timeout 30
 
   create-site:
     <<: *app
@@ -114,12 +117,12 @@ services:
 
   queue-long:
     <<: *app
-    mem_limit: 220m
+    mem_limit: 400m
     command: [bench, worker, --queue, "long,default,short"]
 
   queue-short:
     <<: *app
-    mem_limit: 220m
+    mem_limit: 400m
     command: [bench, worker, --queue, "short,default"]
 
   redis-queue:

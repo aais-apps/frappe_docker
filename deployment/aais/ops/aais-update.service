@@ -9,5 +9,5 @@ User=nirog
 Group=nirog
 SupplementaryGroups=docker
 UMask=0077
-ExecStart=/home/nirog/aais-erp/ops/update.sh
+ExecStart=/usr/bin/python3 /home/nirog/aais-erp/ops/update.py
 TimeoutStartSec=2700

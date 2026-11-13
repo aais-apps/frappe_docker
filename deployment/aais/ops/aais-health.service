@@ -1,0 +1,12 @@
+[Unit]
+Description=Check AAIS container, API and verified backup health
+After=docker.service
+
+[Service]
+Type=oneshot
+User=nirog
+Group=nirog
+SupplementaryGroups=docker
+UMask=0077
+ExecStart=/usr/bin/python3 /home/nirog/aais-erp/ops/health.py
+TimeoutStartSec=60
