@@ -24,6 +24,7 @@ docker run --rm --network "$network" --add-host smoke.local:127.0.0.1 -e CI_DB="
   bench --site smoke.local list-apps
   bench --site smoke.local execute education.education.test_billing_security.run_checks
   bench --site smoke.local execute education.education.test_billing_security.run_privacy_checks
+  bench --site smoke.local execute education.education.test_staff_security.run_checks
   start.sh > /tmp/web.log 2>&1 &
   for attempt in $(seq 1 60); do
     if curl -fsS -H "Host: smoke.local" http://127.0.0.1:8000/api/method/ping | grep -q pong; then
