@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily AAIS backup at 08:00 Asia/Dhaka (02:00 UTC)
+
+[Timer]
+OnCalendar=*-*-* 02:00:00 UTC
+RandomizedDelaySec=300
+Persistent=true
+Unit=aais-backup.service
+
+[Install]
+WantedBy=timers.target

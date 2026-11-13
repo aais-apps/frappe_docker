@@ -1,0 +1,14 @@
+[Unit]
+Description=Deploy tested AAIS releases with backup, migration and rollback
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=nirog
+Group=nirog
+SupplementaryGroups=docker
+UMask=0077
+ExecStart=/home/nirog/aais-erp/ops/update.sh
+TimeoutStartSec=2700
+

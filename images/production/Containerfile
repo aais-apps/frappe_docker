@@ -83,7 +83,7 @@ RUN useradd -u 1000 -g 0 -d /home/frappe -ms /bin/bash frappe \
     && rm -rf /var/lib/apt/lists/* \
     && rm -fr /etc/nginx/sites-enabled/default \
     && mkdir -p /etc/nginx/snippets \
-    && pip3 install frappe-bench \
+    && pip3 install frappe-bench==5.31.1 \
     # Fixes for non-root nginx and logs to stdout
     && sed -i '/user www-data/d' /etc/nginx/nginx.conf \
     && ln -sf /dev/stdout /var/log/nginx/access.log && ln -sf /dev/stderr /var/log/nginx/error.log \
@@ -136,21 +136,34 @@ ARG EDUCATION_REPO=https://github.com/aais-apps/education.git
 ARG EDUCATION_BRANCH=production
 ARG BUILDER_REPO=https://github.com/aais-apps/builder.git
 ARG BUILDER_BRANCH=production
-# Apply group permissions after app installation and cleanup, before the runtime COPY.
-RUN bench init \
-  --frappe-branch=${FRAPPE_BRANCH} \
-  --frappe-path=${FRAPPE_PATH} \
-  --no-procfile \
-  --no-backups \
-  --skip-redis-config-generation \
-  --verbose \
-  /home/frappe/frappe-bench && \
-  cd /home/frappe/frappe-bench && \
-  bench get-app --branch=${ERPNEXT_BRANCH} --resolve-deps erpnext ${ERPNEXT_REPO} && \
-  bench get-app --branch=${EDUCATION_BRANCH} education ${EDUCATION_REPO} && \
-  bench get-app --branch=${BUILDER_BRANCH} builder ${BUILDER_REPO} && \
-  echo "{}" > sites/common_site_config.json && \
-  find apps -mindepth 1 -path "*/.git" | xargs rm -fr && \
+ARG FRAPPE_REVISION
+ARG ERPNEXT_REVISION
+ARG EDUCATION_REVISION
+ARG BUILDER_REVISION
+# Resolve immutable sources before Bench installs requirements or builds assets.
+RUN set -eu; \
+  for app in frappe erpnext education builder; do \
+    case "$app" in \
+      frappe) repo="$FRAPPE_PATH"; branch="$FRAPPE_BRANCH"; revision="$FRAPPE_REVISION" ;; \
+      erpnext) repo="$ERPNEXT_REPO"; branch="$ERPNEXT_BRANCH"; revision="$ERPNEXT_REVISION" ;; \
+      education) repo="$EDUCATION_REPO"; branch="$EDUCATION_BRANCH"; revision="$EDUCATION_REVISION" ;; \
+      builder) repo="$BUILDER_REPO"; branch="$BUILDER_BRANCH"; revision="$BUILDER_REVISION" ;; \
+    esac; \
+    test -n "$revision"; \
+    git clone --depth 1 --branch "$branch" "$repo" "/tmp/$app"; \
+    git -C "/tmp/$app" fetch --depth 1 origin "$revision"; \
+    git -C "/tmp/$app" checkout -B release FETCH_HEAD; \
+    test "$(git -C "/tmp/$app" rev-parse HEAD)" = "$revision"; \
+  done; \
+  bench init --frappe-branch=release --frappe-path=/tmp/frappe \
+    --no-procfile --no-backups --skip-redis-config-generation /home/frappe/frappe-bench; \
+  cd /home/frappe/frappe-bench; \
+  bench get-app --branch=release erpnext /tmp/erpnext; \
+  bench get-app --branch=release education /tmp/education; \
+  bench get-app --branch=release builder /tmp/builder; \
+  echo "{}" > sites/common_site_config.json; \
+  find apps -mindepth 1 -path "*/.git" -exec rm -rf {} +; \
+  rm -rf /tmp/frappe /tmp/erpnext /tmp/education /tmp/builder; \
   chmod -R g=u /home/frappe/frappe-bench
 
 FROM base AS erpnext
@@ -160,6 +173,9 @@ USER frappe
 RUN echo "echo \"Commands restricted in prodution container, Read FAQ before you proceed: https://frappe.io/ctr-faq\"" >> ~/.bashrc
 
 COPY --from=builder --chown=frappe:0 /home/frappe/frappe-bench /home/frappe/frappe-bench
+
+COPY --chown=frappe:0 release.json /home/frappe/frappe-bench/release.json
+COPY --chown=frappe:0 deployment/aais /opt/aais-deployment
 
 WORKDIR /home/frappe/frappe-bench
 

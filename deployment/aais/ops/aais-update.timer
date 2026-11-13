@@ -1,0 +1,10 @@
+[Unit]
+Description=Check for tested AAIS releases every five minutes
+
+[Timer]
+OnBootSec=5min
+OnUnitInactiveSec=5min
+Unit=aais-update.service
+
+[Install]
+WantedBy=timers.target

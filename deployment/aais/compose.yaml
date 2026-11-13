@@ -1,0 +1,163 @@
+name: aais-erp
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+x-app: &app
+  image: ${ERPNEXT_IMAGE:?Set an immutable tested image reference}
+  restart: unless-stopped
+  networks: [frappe_network]
+  volumes:
+    - sites:/home/frappe/frappe-bench/sites
+    - logs:/home/frappe/frappe-bench/logs
+  environment: &app-env
+    FRAPPE_REDIS_CACHE: redis://redis-cache:6379
+    FRAPPE_REDIS_QUEUE: redis://redis-queue:6379
+  logging: *logging
+  labels:
+    com.centurylinklabs.watchtower.enable: "false"
+
+services:
+  backend:
+    <<: *app
+    mem_limit: 500m
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen(urllib.request.Request('http://127.0.0.1:8000/api/method/ping', headers={'Host':'${SITE_NAME:-erp.aais.local}'}), timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 3
+
+  configurator:
+    <<: *app
+    restart: "no"
+    profiles: [setup]
+    environment:
+      <<: *app-env
+      DB_HOST: db
+    entrypoint: [bash, -ec]
+    command:
+      - |
+        ls -1 apps > sites/apps.txt
+        bench set-config -g db_host db
+        bench set-config -gp db_port 3306
+        bench set-config -g redis_cache redis://redis-cache:6379
+        bench set-config -g redis_queue redis://redis-queue:6379
+        bench set-config -g redis_socketio redis://redis-queue:6379
+        bench set-config -gp socketio_port 9000
+
+  create-site:
+    <<: *app
+    restart: "no"
+    profiles: [setup]
+    environment:
+      DB_ROOT_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in the protected environment file}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Set ADMIN_PASSWORD in the protected environment file}
+      SITE_NAME: ${SITE_NAME:-erp.aais.local}
+    entrypoint: [bash, -ec]
+    command:
+      - |
+        wait-for-it -t 120 db:3306
+        wait-for-it -t 120 redis-cache:6379
+        if [ ! -f "sites/$$SITE_NAME/site_config.json" ]; then
+          bench new-site "$$SITE_NAME" --mariadb-user-host-login-scope='%' --admin-password="$$ADMIN_PASSWORD" --db-root-username=root --db-root-password="$$DB_ROOT_PASSWORD" --install-app erpnext --install-app education --install-app builder --set-default
+        fi
+
+  db:
+    image: mariadb:11.8.9@sha256:d36f18d65a0459510b8b0f643b226a6d299e3206486e2b64ff20754a6d291707
+    restart: unless-stopped
+    networks: [frappe_network]
+    mem_limit: 500m
+    environment:
+      MARIADB_ROOT_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in the protected environment file}
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --skip-character-set-client-handshake
+      - --innodb-buffer-pool-size=128M
+      - --max-connections=40
+      - --max-allowed-packet=64M
+    healthcheck:
+      test: [CMD, healthcheck.sh, --connect, --innodb_initialized]
+      start_period: 30s
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes: [db-data:/var/lib/mysql]
+    logging: *logging
+    labels:
+      com.centurylinklabs.watchtower.enable: "false"
+
+  frontend:
+    <<: *app
+    command: [nginx-entrypoint.sh]
+    mem_limit: 120m
+    environment:
+      BACKEND: backend:8000
+      FRAPPE_SITE_NAME_HEADER: ${SITE_NAME:-erp.aais.local}
+      SOCKETIO: websocket:9000
+      UPSTREAM_REAL_IP_ADDRESS: 127.0.0.1
+      UPSTREAM_REAL_IP_HEADER: X-Forwarded-For
+      UPSTREAM_REAL_IP_RECURSIVE: "off"
+      PROXY_READ_TIMEOUT: "120"
+      CLIENT_MAX_BODY_SIZE: 50m
+    ports: ["127.0.0.1:${HTTP_PORT:-8085}:8080"]
+    healthcheck:
+      test: [CMD, curl, -fsS, -H, "Host: ${SITE_NAME:-erp.aais.local}", http://127.0.0.1:8080/api/method/ping]
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 3
+
+  queue-long:
+    <<: *app
+    mem_limit: 220m
+    command: [bench, worker, --queue, "long,default,short"]
+
+  queue-short:
+    <<: *app
+    mem_limit: 220m
+    command: [bench, worker, --queue, "short,default"]
+
+  redis-queue:
+    image: redis:6.2-alpine@sha256:3f9c6e23ed6bea3b41d0ef709fc164c1a0b7c00d5a21a60e0e9c33ada5496881
+    restart: unless-stopped
+    networks: [frappe_network]
+    mem_limit: 96m
+    command: [redis-server, --appendonly, "yes", --maxmemory, 64mb, --maxmemory-policy, noeviction]
+    volumes: [redis-queue-data:/data]
+    logging: *logging
+    labels:
+      com.centurylinklabs.watchtower.enable: "false"
+
+  redis-cache:
+    image: redis:6.2-alpine@sha256:3f9c6e23ed6bea3b41d0ef709fc164c1a0b7c00d5a21a60e0e9c33ada5496881
+    restart: unless-stopped
+    networks: [frappe_network]
+    mem_limit: 96m
+    command: [redis-server, --maxmemory, 64mb, --maxmemory-policy, allkeys-lru]
+    logging: *logging
+    labels:
+      com.centurylinklabs.watchtower.enable: "false"
+
+  scheduler:
+    <<: *app
+    mem_limit: 120m
+    command: [bench, schedule]
+
+  websocket:
+    <<: *app
+    mem_limit: 100m
+    command: [node, /home/frappe/frappe-bench/apps/frappe/socketio.js]
+
+volumes:
+  db-data:
+  redis-queue-data:
+  sites:
+  logs:
+networks:
+  frappe_network:
+    driver: bridge
