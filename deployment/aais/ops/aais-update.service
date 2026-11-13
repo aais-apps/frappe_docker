@@ -11,4 +11,3 @@ SupplementaryGroups=docker
 UMask=0077
 ExecStart=/home/nirog/aais-erp/ops/update.sh
 TimeoutStartSec=2700
-
