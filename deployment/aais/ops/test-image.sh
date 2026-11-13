@@ -21,6 +21,8 @@ docker run --rm --network "$network" -e CI_DB="$db" -e CI_REDIS="$redis" "$image
   bench new-site smoke.local --mariadb-user-host-login-scope="%" --db-root-password=ci-only --admin-password=ci-only --install-app erpnext --install-app education --install-app builder --set-default
   bench --site smoke.local migrate
   bench --site smoke.local list-apps
+  bench --site smoke.local execute education.education.test_billing_security.run_checks
+  bench --site smoke.local execute education.education.test_billing_security.run_privacy_checks
   start.sh > /tmp/web.log 2>&1 &
   for attempt in $(seq 1 60); do
     if curl -fsS -H "Host: smoke.local" http://127.0.0.1:8000/api/method/ping | grep -q pong; then exit 0; fi
