@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Fetch the tested image and its matching deployment configuration before release."""
 import datetime
-import json
+import fcntl
 import os
 import pathlib
 import shutil
@@ -11,6 +11,14 @@ import tempfile
 
 root = pathlib.Path('/home/nirog/aais-erp')
 os.chdir(root)
+lock = pathlib.Path('/home/nirog/aais-backups/deploy.lock').open('a')
+try:
+    fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+except BlockingIOError:
+    print('Another deployment is active')
+    raise SystemExit(0)
+# Python closes this non-inheritable descriptor on exec. deploy.sh then takes
+# the same lock; no running deployment can have its scripts overwritten here.
 
 
 def output(*args):
