@@ -41,8 +41,8 @@ rollback() {
 }
 trap rollback ERR
 docker exec aais-erp-backend-1 bench --site erp.aais.local set-config maintenance_mode 1
-docker compose stop -t 120 scheduler queue-short queue-long websocket
 frozen=true
+docker compose stop -t 120 scheduler queue-short queue-long websocket
 ./ops/backup.sh
 docker cp aais-erp-backend-1:/home/frappe/frappe-bench/sites/erp.aais.local/private/backups/. "$snapshot/site/"
 python3 - "$snapshot" <<'PY'
