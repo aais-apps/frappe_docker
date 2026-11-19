@@ -7,7 +7,7 @@ import pathlib
 import urllib.request
 
 apps = {}
-for app in ("frappe", "erpnext", "education", "builder"):
+for app in ("frappe", "erpnext", "education", "builder", "lms"):
     request = urllib.request.Request(
         f"https://api.github.com/repos/aais-apps/{app}/commits/production",
         headers={"Authorization": f"Bearer {os.environ['GITHUB_TOKEN']}", "Accept": "application/vnd.github+json"},

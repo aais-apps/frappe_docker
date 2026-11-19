@@ -68,10 +68,12 @@ jobs:
             ERPNEXT_BRANCH=production
             EDUCATION_BRANCH=production
             BUILDER_BRANCH=production
+            LMS_BRANCH=production
             FRAPPE_REVISION=${{ steps.sources.outputs.frappe }}
             ERPNEXT_REVISION=${{ steps.sources.outputs.erpnext }}
             EDUCATION_REVISION=${{ steps.sources.outputs.education }}
             BUILDER_REVISION=${{ steps.sources.outputs.builder }}
+            LMS_REVISION=${{ steps.sources.outputs.lms }}
           labels: |
             org.opencontainers.image.source=https://github.com/aais-apps/frappe_docker
             org.opencontainers.image.revision=${{ github.sha }}

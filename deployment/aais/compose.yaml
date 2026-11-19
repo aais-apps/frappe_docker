@@ -66,7 +66,7 @@ services:
         wait-for-it -t 120 db:3306
         wait-for-it -t 120 redis-cache:6379
         if [ ! -f "sites/$$SITE_NAME/site_config.json" ]; then
-          bench new-site "$$SITE_NAME" --mariadb-user-host-login-scope='%' --admin-password="$$ADMIN_PASSWORD" --db-root-username=root --db-root-password="$$DB_ROOT_PASSWORD" --install-app erpnext --install-app education --install-app builder --set-default
+          bench new-site "$$SITE_NAME" --mariadb-user-host-login-scope='%' --admin-password="$$ADMIN_PASSWORD" --db-root-username=root --db-root-password="$$DB_ROOT_PASSWORD" --install-app erpnext --install-app education --install-app builder --install-app lms --set-default
         fi
 
   db:

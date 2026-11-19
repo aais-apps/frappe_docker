@@ -136,18 +136,22 @@ ARG EDUCATION_REPO=https://github.com/aais-apps/education.git
 ARG EDUCATION_BRANCH=production
 ARG BUILDER_REPO=https://github.com/aais-apps/builder.git
 ARG BUILDER_BRANCH=production
+ARG LMS_REPO=https://github.com/aais-apps/lms.git
+ARG LMS_BRANCH=production
 ARG FRAPPE_REVISION
 ARG ERPNEXT_REVISION
 ARG EDUCATION_REVISION
 ARG BUILDER_REVISION
+ARG LMS_REVISION
 # Resolve immutable sources before Bench installs requirements or builds assets.
 RUN set -eu; \
-  for app in frappe erpnext education builder; do \
+  for app in frappe erpnext education builder lms; do \
     case "$app" in \
       frappe) repo="$FRAPPE_PATH"; branch="$FRAPPE_BRANCH"; revision="$FRAPPE_REVISION" ;; \
       erpnext) repo="$ERPNEXT_REPO"; branch="$ERPNEXT_BRANCH"; revision="$ERPNEXT_REVISION" ;; \
       education) repo="$EDUCATION_REPO"; branch="$EDUCATION_BRANCH"; revision="$EDUCATION_REVISION" ;; \
       builder) repo="$BUILDER_REPO"; branch="$BUILDER_BRANCH"; revision="$BUILDER_REVISION" ;; \
+      lms) repo="$LMS_REPO"; branch="$LMS_BRANCH"; revision="$LMS_REVISION" ;; \
     esac; \
     test -n "$revision"; \
     git clone --depth 1 --branch "$branch" "$repo" "/tmp/$app"; \
@@ -161,9 +165,10 @@ RUN set -eu; \
   bench get-app --branch=release erpnext /tmp/erpnext; \
   bench get-app --branch=release education /tmp/education; \
   bench get-app --branch=release builder /tmp/builder; \
+  bench get-app --branch=release lms /tmp/lms; \
   echo "{}" > sites/common_site_config.json; \
   find apps -mindepth 1 -path "*/.git" -exec rm -rf {} +; \
-  rm -rf /tmp/frappe /tmp/erpnext /tmp/education /tmp/builder; \
+  rm -rf /tmp/frappe /tmp/erpnext /tmp/education /tmp/builder /tmp/lms; \
   chmod -R g=u /home/frappe/frappe-bench
 
 FROM base AS erpnext
