@@ -102,6 +102,7 @@ services:
       BACKEND: backend:8000
       FRAPPE_SITE_NAME_HEADER: ${SITE_NAME:-erp.aais.local}
       SOCKETIO: websocket:9000
+      TRUST_UPSTREAM_FORWARDED_PROTO: "on"
       UPSTREAM_REAL_IP_ADDRESS: 127.0.0.1
       UPSTREAM_REAL_IP_HEADER: X-Forwarded-For
       UPSTREAM_REAL_IP_RECURSIVE: "off"
