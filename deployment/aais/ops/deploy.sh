@@ -70,5 +70,8 @@ docker exec aais-erp-backend-1 bench --site erp.aais.local set-config pause_sche
 docker cp aais-erp-backend-1:/home/frappe/frappe-bench/release.json release.json
 chmod 600 release.json .env
 date -u +%FT%TZ > /home/nirog/aais-backups/last-deploy-success
+# Prune older rollback images (keep only current) and dangling layers
+docker images --format '{{.Repository}}:{{.Tag}}' | grep '^local/aais-rollback:' | grep -v ":$stamp\$" | xargs -r docker rmi || true
+docker image prune -f || true
 trap - ERR
 printf 'Release healthy: %s\n' "$image"
