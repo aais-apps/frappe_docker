@@ -42,8 +42,21 @@ A build fails when growth exceeds **both** limits for any measured image.
 Equality with a limit is permitted. For example, growth from 1,000 MiB to 1,200 MiB
 fails; growth from 1,000 MiB to 1,100 MiB does not exceed the absolute limit.
 
-Intentional larger increases require a reviewed change to the versioned policy.
 Limits must be non-negative, finite numbers.
+
+### Accept image growth for one run
+
+In GitHub Actions, open a stable or develop build workflow, choose **Run workflow**
+on `main`, and enable **Allow images to exceed size limits for this run on main**.
+
+The size check records growth above the limits as a warning and marks it
+**Accepted** in the job summary for every affected image, release line, and
+architecture in the run. Measurements must still succeed, and integration tests
+must pass before publishing. Automatic runs continue to enforce the limits.
+
+After a successful run, its size report becomes eligible as the baseline for the
+same workflow. Use **Core / Build Stable** or **Core / Build Develop** to update
+the baseline for the corresponding automated builds.
 
 ## Baseline selection
 
@@ -89,10 +102,10 @@ unpinned dependencies can affect sizes even when the recorded inputs match.
 Once measurements have been collected, the workflow uploads `report.json`,
 including when the size check or a later step fails.
 
-| Run type | Artifact name                                         |
-| -------- | ----------------------------------------------------- |
-| Main     | `image-sizes-<repo>-<release-line>-<architecture>`    |
-| PR       | `image-sizes-pr-<repo>-<release-line>-<architecture>` |
+| Run type | Artifact name                                                           |
+| -------- | ----------------------------------------------------------------------- |
+| Main     | `image-sizes-<repo>-<release-line>-<architecture>`                      |
+| PR       | `image-sizes-pr-<repo>-<release-line>-<architecture>-attempt-<attempt>` |
 
 For the existing core matrix, `<repo>` is `erpnext`. Each report records its source
 commit and workflow run, architecture, application and build versions, image
@@ -102,6 +115,18 @@ The job summary contains the baseline, current size, absolute and percentage
 changes, layer counts, results, and the ten largest layers per image with their
 build instructions. Failed runs retain their reports for review but cannot become
 baselines.
+
+For pull requests, GitHub Actions posts a build report when a Stable build
+finishes. The report shows the Docker Bake step duration and compressed
+sizes by release line and architecture alongside the same successful `main`
+baseline used in the Actions size summary. Each row also shows the outcome of
+the full build-and-test job. The comment links to the baseline
+run and shows absolute and percentage changes in time and size when the
+measurements are available. An orange circle marks an increase, and a green
+circle marks a decrease.
+New Stable runs update the existing comment, including
+when the build fails after collecting measurements. If an artifact download
+fails, rerun **Core / Report PR Build** to retry posting the comment.
 
 ## Publishing boundary
 
