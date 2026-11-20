@@ -19,7 +19,7 @@ docker run --rm --network "$network" --add-host smoke.local:127.0.0.1 -e CI_DB="
   bench set-config -g redis_cache "redis://$CI_REDIS:6379"
   bench set-config -g redis_queue "redis://$CI_REDIS:6379"
   bench set-config -g redis_socketio "redis://$CI_REDIS:6379"
-  bench new-site smoke.local --mariadb-user-host-login-scope="%" --db-root-password=ci-only --admin-password=ci-only --install-app erpnext --install-app education --install-app builder --set-default
+  bench new-site smoke.local --mariadb-user-host-login-scope="%" --db-root-password=ci-only --admin-password=ci-only --install-app erpnext --install-app education --install-app builder --install-app lms --set-default
   bench --site smoke.local migrate
   bench --site smoke.local list-apps
   bench --site smoke.local execute education.education.test_billing_security.run_checks

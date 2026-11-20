@@ -19,5 +19,5 @@ jobs:
           python-version: '3.14'
       - name: Check Python syntax and whitespace
         run: |
-          python -m compileall -q deployment/aais/ops
+          python -m compileall -q deployment/aais/ops deployment/aais/upstream
           git diff --check HEAD^ HEAD
